@@ -13,6 +13,8 @@ df_covid_severe = df_covid_severe[
     ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70-79', '80-89', '90+']]
 df_covid_severe['elderly_over_total'] = df_covid_severe[['60-69', '70-79', '80-89', '90+']].sum(
     axis=1) / df_covid_severe.sum(axis=1)
+    
+df_covid_severe['elderly_severe'] = df_covid_severe[['60-69', '70-79', '80-89', '90+']].sum(axis=1)
 
 # get vaccine data
 df_vaccine = pd.read_csv(
@@ -35,7 +37,7 @@ plt.title("Israel COVID-19 - Vacina e Hospitalização")
 
 def annotate_data(x_data, y_data):
     for x, y in zip(x_data, y_data):
-        label = "{:.2f}%".format(y * 100)
+        label = "{:.1f}%".format(y * 100)
 
         plt.annotate(label,  # this is the text
                      (x, y),  # this is the point to label
@@ -48,5 +50,40 @@ annotate_data(df_plot['date'].dt.date, df_plot['perc'])
 annotate_data(df_plot['date'].dt.date, df_plot['elderly_over_total'])
 
 plt.gca().set_yticklabels(['{:.0f}%'.format(x * 100) for x in plt.gca().get_yticks()])
+
+plt.show()
+
+
+df_plot = pd.merge(df_covid_severe.resample('D')['elderly_severe'].mean(), df_vaccine, right_on='date',
+                   left_index=True)
+                   
+plt.plot(df_plot['date'].dt.date, df_plot['elderly_severe'], 'o-',
+         label='Total de Idosos em Situação Crítica')
+
+plt.legend(loc="lower right")
+plt.title("Israel COVID-19 - Vacina e Hospitalização")  
+
+plt.show()
+
+
+df_covid_hospitalizations = pd.read_csv(
+    "https://raw.githubusercontent.com/dancarmoz/israel_moh_covid_dashboard_data/master/hospitalized_and_infected.csv")
+
+
+df_covid_hospitalizations['Date'] = pd.to_datetime(df_covid_hospitalizations['Date'], utc=True)
+df_covid_hospitalizations.set_index('Date', inplace=True)
+df_plot = pd.merge(df_covid_hospitalizations, df_vaccine, right_on='date',
+                   left_index=True)
+ 
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+ax1.plot(df_plot['date'].dt.date, df_plot['Hospitalized'], 'bo-')
+ax1.set_ylabel('Hospitalizados', color='b')
+         
+ax2.plot(df_plot['date'].dt.date, df_plot['perc'], 'go-')
+ax2.set_ylabel('Percentual Vacinado da População', color='g')
+
+plt.legend(loc="lower right")
+plt.title("Israel COVID-19 - Vacina e Hospitalização")  
 
 plt.show()
